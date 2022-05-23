@@ -5,11 +5,11 @@ import tkinter
 import tkinter.scrolledtext
 from tkinter import simpledialog
 
-HOST = '25.61.192.46'
-PORT = 5050
+HOST = '26.176.221.42'
+PORT = 5555
 FORMAT = 'UTF-8'
 HEADER = 1024
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 
 class Client():
     def __init__(self, host, port):
@@ -19,6 +19,7 @@ class Client():
 
         msg = tkinter.Tk()
         msg.withdraw()
+        msg.resizable(False, False)
 
         self.nickname = simpledialog.askstring("Usuario", "Elige tu nombre de usuario", parent=msg)
 
@@ -34,6 +35,7 @@ class Client():
         self.win = tkinter.Tk()
         self.win.title(f"NotDiscord v{VERSION}")
         self.win.configure(bg="lightgray")
+        self.win.resizable(False, False)
 
         self.chat_label = tkinter.Label(self.win, text="Chat:", bg="lightgray")
         self.chat_label.config(font=("Arial", 12))
@@ -43,21 +45,33 @@ class Client():
         self.text_area.pack(padx=20, pady=5)
         self.text_area.config(state="disabled")
 
-        self.msg_label = tkinter.Label(self.win, text="Message:", bg="lightgray")
+        self.msg_label = tkinter.Label(self.win, text="Mensaje:", bg="lightgray")
         self.msg_label.config(font=("Arial", 12))
         self.msg_label.pack(padx=20, pady=5)
 
         self.input_area = tkinter.Text(self.win, height=3)
         self.input_area.pack(padx=20, pady=5)
 
-        self.send_button = tkinter.Button(self.win, text="Send", command=self.write)
+        self.send_button = tkinter.Button(self.win, text="Enviar", command=self.write)
         self.send_button.config(font=("Arial", 12))
         self.send_button.pack(padx=20, pady=5)
         self.win.bind('<Return>', lambda event=None: self.send_button.invoke())
 
+        self.change_nick_button = tkinter.Button(self.win, text="Cambiar usuario", command=self.changeNick)
+        self.change_nick_button.config(font=("Arial", 12))
+        self.change_nick_button.pack(padx=20, pady=5)
+
         self.gui_done = True
         self.win.protocol("WM_DELETE_WINDOW", self.stop)
         self.win.mainloop()
+
+    def changeNick(self):
+        msg = tkinter.Tk()
+        msg.withdraw()
+        msg.resizable(False, False)
+
+        self.nickname = simpledialog.askstring("Usuario", "Elige tu nombre de usuario", parent=msg)
+        self.sock.send(f"483274874727234,{self.nickname}".encode(FORMAT))
 
     def write(self):
         msg = f"{self.input_area.get('1.0', 'end')}"
