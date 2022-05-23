@@ -3,13 +3,17 @@ import socket
 import threading
 import tkinter
 import tkinter.scrolledtext
-from tkinter import simpledialog
+from tkinter import W, simpledialog
+from pyautogui import getAllWindows
+from playsound import playsound
+from sys import path
 
+DIRECT = path[0]
 HOST = '26.176.221.42'
 PORT = 5555
 FORMAT = 'UTF-8'
 HEADER = 1024
-VERSION = "1.0.2"
+VERSION = "1.0.3"
 
 class Client():
     def __init__(self, host, port):
@@ -92,6 +96,12 @@ class Client():
                 if msg == "NICK":
                     self.sock.send(self.nickname.encode(FORMAT))
                 elif self.gui_done and len(msg.strip()) > 0:
+                    for window in getAllWindows():
+                        if window.title != "":
+                            if "NotDiscord" not in window.title:
+                                playsound(f'{DIRECT}\extras\c.wav')
+
+                                break
                     self.text_area.config(state="normal")
                     self.text_area.insert("end", f"\n{msg}")
                     self.text_area.yview("end")
