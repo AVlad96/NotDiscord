@@ -2,16 +2,15 @@ from logging import error
 import socket
 import threading
 from time import sleep
+from pickle import dumps, loads
 
 HOST = '26.176.221.42'
 PORT = 5555
 ADDR = (HOST, PORT)
-FORMAT = 'UTF-8'
-HEADER = 1024
+HEADER = 8192
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDR)
-
 server.listen()
 
 nicknames = []
@@ -19,7 +18,7 @@ clients = []
 def broadcast(msg):
     for client in clients:
         try:
-            client.send(msg)
+            client.send(dumps(msg))
         except ConnectionResetError:
             continue
         except error as e:
@@ -30,21 +29,23 @@ def handle(client):
     broadcastMsgHistory(client)
     while True:
         try:
-            msg = client.recv(1024).decode(FORMAT)
+            broadcastUsersConnected()
+            msg = loads(client.recv(HEADER))
             if "483274874727234" in msg:
-                broadcast(f"{nicknames[clients.index(client)]} se ha cambiado el nombre de usuario a '{msg.split(',')[1]}'.".encode(FORMAT))
+                broadcast(f"{nicknames[clients.index(client)]} se ha cambiado el nombre de usuario a '{msg.split(',')[1]}'.")
                 nicknames[clients.index(client)] = msg.split(',')[1]
             else:
                 print(f"{nicknames[clients.index(client)]}: {msg}")
-                broadcast(f"{nicknames[clients.index(client)]}: {msg.rstrip()}".encode(FORMAT))
-                msgHistory.append(f"{nicknames[clients.index(client)]}: {msg.rstrip()}")
-        except:
-            broadcast(f"{nicknames[clients.index(client)]} se ha ido. Qué maricón.".encode(FORMAT))
+                broadcast(f"{nicknames[clients.index(client)]}: {msg.strip()}")
+                msgHistory.append(f"{nicknames[clients.index(client)]}: {msg.strip()}")
+        except ConnectionResetError or EOFError:
+            broadcast(f"{nicknames[clients.index(client)]} se ha ido. Qué maricón.")
             index = clients.index(client)
             clients.remove(client)
             client.close()
             nickname = nicknames[index]
             nicknames.remove(nickname)
+            broadcastUsersConnected()
             break
     
     client.close()
@@ -54,15 +55,14 @@ def receive():
         client, addr = server.accept()
         print(f"CONNECTED WITH {addr}.")
         
-        client.send("NICK".encode(FORMAT))
+        client.send(dumps("NICK"))
         try:
-            nickname = client.recv(HEADER).decode()
+            nickname = loads(client.recv(HEADER))
 
             nicknames.append(nickname)
             clients.append(client)
-
             print(f"NICKNAME'S CLIENT IS '{nickname}'.")
-            broadcast(f"{nickname} se ha unido.".encode(FORMAT))
+            broadcast(f"{nickname} se ha unido.")
 
             thread1 = threading.Thread(target=handle, args=(client,))
             thread1.start()
@@ -72,8 +72,18 @@ def receive():
 msgHistory = []
 def broadcastMsgHistory(client):
     for msg in msgHistory:
-        client.send(msg.encode(FORMAT))
-        sleep(0.001)
+        try:
+            client.send(dumps(msg))
+            sleep(0.001)
+        except ConnectionAbortedError:
+            break
+
+def broadcastUsersConnected():
+    for client in clients:
+        try:
+            client.send(dumps(nicknames))
+        except ConnectionResetError:
+            break
 
 print("SERVER RUNNING.")
 receive()
