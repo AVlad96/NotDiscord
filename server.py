@@ -7,7 +7,7 @@ from pickle import dumps, loads
 HOST = '26.176.221.42'
 PORT = 5555
 ADDR = (HOST, PORT)
-HEADER = 8192
+HEADER = 8192*2
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDR)

@@ -2,6 +2,7 @@ from socket import socket, AF_INET, SOCK_STREAM
 from threading import Thread, Lock
 from tkinter import Tk, Text, Label, Button, simpledialog
 from tkinter.scrolledtext import ScrolledText
+from _tkinter import TclError
 from pygetwindow import getActiveWindowTitle
 from playsound import playsound
 from sys import path
@@ -11,13 +12,16 @@ from time import sleep
 DIRECT = path[0]
 HOST = '26.176.221.42'
 PORT = 5555
-HEADER = 8192
+HEADER = 8192*2
 VERSION = "1.0.4"
 
 class Client():
     def __init__(self, host, port):
         self.BGCOLOR = "white"
         self.USERS_CONNECTED = 0
+
+        self.reconnect_again = True
+
         self.host = host
         self.port = port
         try:
@@ -90,6 +94,10 @@ class Client():
         self.reconnect_button.config(font=("Arial", 12))
         self.reconnect_button.grid(row=3, column=1)
 
+        self.reconnect_button = Button(self.win, text="Cambiar color (BG)", command=self.changeColor)
+        self.reconnect_button.config(font=("Arial", 12))
+        self.reconnect_button.grid(row=4, column=1)
+
         self.gui_done = True
         self.win.protocol("WM_DELETE_WINDOW", self.stop)
         self.win.mainloop()
@@ -106,6 +114,21 @@ class Client():
                 self.nickname = oldNickname
             else:
                 self.sock.send(dumps(f"483274874727234,{self.nickname[:20]}"))
+
+    def changeColor(self):
+        msg = Tk()
+        msg.withdraw()
+        msg.resizable(False, False)
+
+        oldColor = self.BGCOLOR
+        self.BGCOLOR = simpledialog.askstring("Color", "Elige un color.", parent=msg)
+
+        self.text_area.config(state="normal")
+        try:
+            self.text_area.config(bg=self.BGCOLOR)
+        except TclError:
+            self.BGCOLOR = oldColor
+        self.text_area.config(state="disabled")
 
     def write(self):
         msg = f"{self.input_area.get('1.0', 'end')}"
@@ -150,6 +173,7 @@ class Client():
                                     self.lock.release()
                                 except RuntimeError:
                                     pass
+
                             self.text_area.config(state="normal")
                             self.text_area.insert("end", f"{msg}\n")
                             self.text_area.yview("end")
@@ -179,7 +203,8 @@ class Client():
                 sleep(.5)
 
     def reconnect(self):
-        if not self.connected:
+        if not self.connected and self.reconnect_again:
+            self.reconnect_again = False
             self.writeInChat(f"RECONECTANDO A '{HOST}'...")
             try:
                 self.addr = (self.host, self.port)
@@ -190,9 +215,11 @@ class Client():
                 self.text_area.delete('1.0', 'end')
                 self.text_area.config(state="disabled")
                 self.writeInChat(f"CONEXIÓN ESTABLECIDA.")
+                self.reconnect_again = True
             except ConnectionRefusedError:
                 print("Can't connect, retry later.")
                 self.connected = False
                 self.writeInChat(f"ERROR AL CONECTAR.")
+                self.reconnect_again = True
 
 client = Client(HOST, PORT)
