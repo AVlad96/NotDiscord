@@ -71,17 +71,15 @@ def receive():
 
 msgHistory = []
 def broadcastMsgHistory(client):
-    for msg in msgHistory:
-        try:
-            client.send(dumps(msg))
-            sleep(0.001)
-        except ConnectionAbortedError:
-            break
+    try:
+        client.send(dumps([msgHistory, "msgHistory"]))
+    except ConnectionAbortedError:
+        pass
 
 def broadcastUsersConnected():
     for client in clients:
         try:
-            client.send(dumps(nicknames))
+            client.send(dumps([nicknames, "nicknames"]))
         except ConnectionResetError:
             break
 
