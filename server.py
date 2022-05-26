@@ -15,6 +15,7 @@ server.listen()
 
 nicknames = []
 clients = []
+filesUploaded = []
 def broadcast(msg):
     for client in clients:
         try:
@@ -27,17 +28,25 @@ def broadcast(msg):
 
 def handle(client):
     broadcastMsgHistory(client)
+    sleep(0.4)
     while True:
         try:
             broadcastUsersConnected()
+            sleep(0.4)
+            broadcast([filesUploaded, "Upload", "History"])
             msg = loads(client.recv(HEADER))
-            if "483274874727234" in msg:
-                broadcast(f"{nicknames[clients.index(client)]} se ha cambiado el nombre de usuario a '{msg.split(',')[1]}'.")
-                nicknames[clients.index(client)] = msg.split(',')[1]
+            if type(msg) == str:
+                if "483274874727234" in msg:
+                    broadcast(f"{nicknames[clients.index(client)]} se ha cambiado el nombre de usuario a '{msg.split(',')[1]}'.")
+                    nicknames[clients.index(client)] = msg.split(',')[1]
+                else:
+                    print(f"{nicknames[clients.index(client)]}: {msg.strip()}")
+                    broadcast(f"{nicknames[clients.index(client)]}: {msg.strip()}")
+                    msgHistory.append(f"{nicknames[clients.index(client)]}: {msg.strip()}")
             else:
-                print(f"{nicknames[clients.index(client)]}: {msg}")
-                broadcast(f"{nicknames[clients.index(client)]}: {msg.strip()}")
-                msgHistory.append(f"{nicknames[clients.index(client)]}: {msg.strip()}")
+                print(f"{msg[0], msg[2]}")
+                filesUploaded.append([msg[0], msg[2], msg[3]])
+                broadcast([filesUploaded, "Upload", ""])
         except ConnectionResetError or EOFError:
             broadcast(f"{nicknames[clients.index(client)]} se ha ido. Qué maricón.")
             index = clients.index(client)
